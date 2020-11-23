@@ -26,17 +26,17 @@ namespace SimpleDataStoreProjectInCSharp
         /// Entry point for the application.
         /// </summary>
         /// <returns></returns>
-        public static async Task Main()
+        public static void Main()
         {
             Console.OutputEncoding = Encoding.UTF8;
             Console.WriteLine("Init? [Y/n]");
             var input = Console.ReadLine() ?? string.Empty;
             if (input.Length == 0 || input.ToUpper() == "Y")
             {
-                await Load();
+                Load();
             }
 
-            await ReadBinaryData();
+            ReadBinaryData();
         }
 
         /// <summary>
@@ -44,12 +44,11 @@ namespace SimpleDataStoreProjectInCSharp
         /// based on an internal mapping.
         /// </summary>
         /// <returns></returns>
-        private static async Task Load()
+        private static void Load()
         {
             // HTTP: download file from https://www.data.gv.at/katalog/dataset/spielplatze-standorte-wien/resource/d7477bee-cfc3-45c0-96a1-5911e0ae122c
-            // async disposable: https://docs.microsoft.com/en-us/dotnet/standard/garbage-collection/implementing-disposeasync
             using WebClient webClient = new WebClient();
-            await using Stream stream = await webClient.OpenReadTaskAsync(
+            using Stream stream = webClient.OpenRead(
                 "https://data.wien.gv.at/daten/geo?service=WFS&request=GetFeature&version=1.1.0&typeName=ogdwien:SPIELPLATZPUNKTOGD&srsName=EPSG:4326&outputFormat=csv");
 
             // (local testing) Stream: Read data ... see same interface as the webClient's stream
@@ -57,11 +56,11 @@ namespace SimpleDataStoreProjectInCSharp
 
             // OOP: create PlaygroundPoint
             // Collections: get data
-            var data = await ReadStreamAsCsv(stream);
+            var data = ReadStreamAsCsv(stream);
 
             // File: Persist data in own csv file with the same format
-            await using Stream writeStream = File.OpenWrite("custom.csv");
-            await WriteCollectionAsCsv(data, writeStream);
+            using Stream writeStream = File.OpenWrite("custom.csv");
+            WriteCollectionAsCsv(data, writeStream);
 
             // LINQ
             var objectIds = data.Select(x => x.OBJECTID).Where(x => x.HasValue).Select(x => x.Value).ToList();
@@ -69,8 +68,8 @@ namespace SimpleDataStoreProjectInCSharp
             Console.WriteLine("max objectid: " + objectIds.Max());
 
             // File handling: preparation for databases (index file)
-            await using Stream writeStreamBinary = File.OpenWrite("custom.dat");
-            await using Stream writeStreamIndexBinary = File.OpenWrite("custom.idx.dat");
+            using Stream writeStreamBinary = File.OpenWrite("custom.dat");
+            using Stream writeStreamIndexBinary = File.OpenWrite("custom.idx.dat");
             WriteCollectionAsBinary(data, writeStreamBinary, writeStreamIndexBinary);
         }
 
@@ -80,10 +79,10 @@ namespace SimpleDataStoreProjectInCSharp
         /// <param name="data">Collection of data.</param>
         /// <param name="writeStreamBinary">Stream for the content.</param>
         /// <param name="writeStreamIndexBinary">Stream for the index file.</param>
-        private static async void WriteCollectionAsBinary(IEnumerable<PlaygroundPoint> data, Stream writeStreamBinary, Stream writeStreamIndexBinary)
+        private static void WriteCollectionAsBinary(IEnumerable<PlaygroundPoint> data, Stream writeStreamBinary, Stream writeStreamIndexBinary)
         {
-            await using var writer = new BinaryWriter(writeStreamBinary, Encoding.UTF8);
-            await using var indexWriter = new BinaryWriter(writeStreamIndexBinary, Encoding.UTF8);
+            using var writer = new BinaryWriter(writeStreamBinary, Encoding.UTF8);
+            using var indexWriter = new BinaryWriter(writeStreamIndexBinary, Encoding.UTF8);
             foreach (var item in data)
             {
 
@@ -112,14 +111,14 @@ namespace SimpleDataStoreProjectInCSharp
         /// </summary>
         /// <param name="stream">Input stream to read from.</param>
         /// <returns></returns>
-        private static async Task<IList<PlaygroundPoint>> ReadStreamAsCsv(Stream stream)
+        private static IList<PlaygroundPoint> ReadStreamAsCsv(Stream stream)
         {
             using var reader = new StreamReader(stream, Encoding.UTF8);
             var list = new List<PlaygroundPoint>();
 
             // first line is the header (we already know and store for debugging purpose)
             // ReSharper disable once UnusedVariable
-            var header = await reader.ReadLineAsync();
+            var header = reader.ReadLineAsync();
 
             bool isContentOver = false;
             while (!isContentOver)
@@ -242,13 +241,13 @@ namespace SimpleDataStoreProjectInCSharp
         /// <param name="data"></param>
         /// <param name="stream"></param>
         /// <returns></returns>
-        private static async Task WriteCollectionAsCsv(IEnumerable<PlaygroundPoint> data, Stream stream)
+        private static void WriteCollectionAsCsv(IEnumerable<PlaygroundPoint> data, Stream stream)
         {
-            await using StreamWriter writer = new StreamWriter(stream, Encoding.UTF8);
-            await writer.WriteLineAsync("FID,OBJECTID,SHAPE,ANL_NAME,BEZIRK,SPIELPLATZ_DETAIL,TYP_DETAIL,SE_ANNO_CAD_DATA");
+            using StreamWriter writer = new StreamWriter(stream, Encoding.UTF8);
+            writer.WriteLine("FID,OBJECTID,SHAPE,ANL_NAME,BEZIRK,SPIELPLATZ_DETAIL,TYP_DETAIL,SE_ANNO_CAD_DATA");
             foreach (var item in data)
             {
-                await writer.WriteLineAsync($"{Escape(item.FID)},{Format(item.OBJECTID)},{Escape(item.SHAPE)},{Escape(item.ANL_NAME)},{Format(item.BEZIRK)},{Escape(item.SPIELPLATZ_DETAIL)},{Escape(item.TYP_DETAIL)},{Escape(item.SE_ANNO_CAD_DATA)}");
+                writer.WriteLine($"{Escape(item.FID)},{Format(item.OBJECTID)},{Escape(item.SHAPE)},{Escape(item.ANL_NAME)},{Format(item.BEZIRK)},{Escape(item.SPIELPLATZ_DETAIL)},{Escape(item.TYP_DETAIL)},{Escape(item.SE_ANNO_CAD_DATA)}");
             }
 
             // local function https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/classes-and-structs/local-functions
@@ -282,13 +281,13 @@ namespace SimpleDataStoreProjectInCSharp
         /// Read binary data based on index file.
         /// </summary>
         /// <returns></returns>
-        private static async Task ReadBinaryData()
+        private static void ReadBinaryData()
         {
             Console.Write("Enter an object id: ");
             var searchedObjectId = int.Parse(Console.ReadLine() ?? "0");
 
-            await using Stream readStreamBinary = File.OpenRead("custom.dat");
-            await using Stream readStreamIndexBinary = File.OpenRead("custom.idx.dat");
+            using Stream readStreamBinary = File.OpenRead("custom.dat");
+            using Stream readStreamIndexBinary = File.OpenRead("custom.idx.dat");
 
             using var indexReader = new BinaryReader(readStreamIndexBinary, Encoding.UTF8);
             using var reader = new BinaryReader(readStreamBinary, Encoding.UTF8);
@@ -317,7 +316,7 @@ namespace SimpleDataStoreProjectInCSharp
                     SE_ANNO_CAD_DATA: reader.ReadString()
                 );
 
-                await WriteCollectionAsCsv(new[] { currentItem }, Console.OpenStandardOutput());
+                WriteCollectionAsCsv(new[] { currentItem }, Console.OpenStandardOutput());
             }
         }
     }
