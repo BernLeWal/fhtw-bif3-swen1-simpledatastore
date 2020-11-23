@@ -8,6 +8,18 @@ using System.Threading.Tasks;
 
 namespace SimpleDataStoreProjectInCSharp
 {
+    // https://www.thomasclaudiushuber.com/2020/09/01/c-9-0-records-work-with-immutable-data-classes/
+    // https://daveabrock.com/2020/07/06/c-sharp-9-deep-dive-records
+    public record PlaygroundPoint(
+        string FID,
+        int? OBJECTID,
+        string SHAPE,
+        string ANL_NAME,
+        int? BEZIRK,
+        string SPIELPLATZ_DETAIL,
+        string TYP_DETAIL,
+        string SE_ANNO_CAD_DATA);
+
     public static class Program
     {
         /// <summary>
@@ -112,7 +124,14 @@ namespace SimpleDataStoreProjectInCSharp
             bool isContentOver = false;
             while (!isContentOver)
             {
-                var currentItem = new PlaygroundPoint();
+                string currentItemFID = null;
+                int? currentItemOBJECTID = null;
+                string currentItemSHAPE = null;
+                string currentItemANL_NAME = null;
+                int? currentItemBEZIRK = null;
+                string currentItemSPIELPLATZ_DETAIL = null;
+                string currentItemTYP_DETAIL = null;
+                string currentItemSE_ANNO_CAD_DATA = null;
 
                 for (int i = 0; i < 8; i++)
                 {
@@ -175,35 +194,42 @@ namespace SimpleDataStoreProjectInCSharp
                     switch (i)
                     {
                         case 0:
-                            currentItem.FID = readPart.ToString();
+                            currentItemFID = readPart.ToString();
                             break;
                         case 1:
-                            currentItem.OBJECTID = readPart.Length == 0 ? null : new int?(int.Parse(readPart.ToString()));
+                            currentItemOBJECTID = readPart.Length == 0 ? null : new int?(int.Parse(readPart.ToString()));
                             break;
                         case 2:
-                            currentItem.SHAPE = readPart.ToString();
+                            currentItemSHAPE = readPart.ToString();
                             break;
                         case 3:
-                            currentItem.ANL_NAME = readPart.ToString();
+                            currentItemANL_NAME = readPart.ToString();
                             break;
                         case 4:
-                            currentItem.BEZIRK = readPart.Length == 0 ? null : new int?(int.Parse(readPart.ToString()));
+                            currentItemBEZIRK = readPart.Length == 0 ? null : new int?(int.Parse(readPart.ToString()));
                             break;
                         case 5:
-                            currentItem.SPIELPLATZ_DETAIL = readPart.ToString();
+                            currentItemSPIELPLATZ_DETAIL = readPart.ToString();
                             break;
                         case 6:
-                            currentItem.TYP_DETAIL = readPart.ToString();
+                            currentItemTYP_DETAIL = readPart.ToString();
                             break;
                         case 7:
-                            currentItem.SE_ANNO_CAD_DATA = readPart.ToString();
+                            currentItemSE_ANNO_CAD_DATA = readPart.ToString();
                             break;
                     }
                 }
 
                 if (!isContentOver)
                 {
-                    list.Add(currentItem);
+                    list.Add(new PlaygroundPoint(currentItemFID,
+                                                    currentItemOBJECTID,
+                                                    currentItemSHAPE,
+                                                    currentItemANL_NAME,
+                                                    currentItemBEZIRK,
+                                                    currentItemSPIELPLATZ_DETAIL,
+                                                    currentItemTYP_DETAIL,
+                                                    currentItemSE_ANNO_CAD_DATA));
                 }
             }
 
@@ -280,17 +306,16 @@ namespace SimpleDataStoreProjectInCSharp
                 Console.WriteLine($"found at position: {position}");
                 reader.BaseStream.Position = position;
 
-                var currentItem = new PlaygroundPoint
-                {
-                    FID = reader.ReadString(),
-                    OBJECTID = reader.ReadBoolean() ? new int?(reader.ReadInt32()) : null,
-                    SHAPE = reader.ReadString(),
-                    ANL_NAME = reader.ReadString(),
-                    BEZIRK = reader.ReadBoolean() ? new int?(reader.ReadInt32()) : null,
-                    SPIELPLATZ_DETAIL = reader.ReadString(),
-                    TYP_DETAIL = reader.ReadString(),
-                    SE_ANNO_CAD_DATA = reader.ReadString()
-                };
+                var currentItem = new PlaygroundPoint(
+                    FID: reader.ReadString(),
+                    OBJECTID: reader.ReadBoolean() ? new int?(reader.ReadInt32()) : null,
+                    SHAPE: reader.ReadString(),
+                    ANL_NAME: reader.ReadString(),
+                    BEZIRK: reader.ReadBoolean() ? new int?(reader.ReadInt32()) : null,
+                    SPIELPLATZ_DETAIL: reader.ReadString(),
+                    TYP_DETAIL: reader.ReadString(),
+                    SE_ANNO_CAD_DATA: reader.ReadString()
+                );
 
                 await WriteCollectionAsCsv(new[] { currentItem }, Console.OpenStandardOutput());
             }
