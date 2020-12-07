@@ -1,10 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Serialization;
+using Newtonsoft.Json;
+using Npgsql;
+using Npgsql.Replication.PgOutput.Messages;
+using NpgsqlTypes;
 
 namespace SimpleDataStoreProjectInCSharp
 {
@@ -19,6 +25,31 @@ namespace SimpleDataStoreProjectInCSharp
         string SPIELPLATZ_DETAIL,
         string TYP_DETAIL,
         string SE_ANNO_CAD_DATA);
+
+    public class PlaygroundPointClass
+    {
+        public string FID { get; set; }
+        public int? OBJECTID { get; set; }
+        public string SHAPE { get; set; }
+        public string ANL_NAME { get; set; }
+        public int? BEZIRK { get; set; }
+        public string SPIELPLATZ_DETAIL { get; set; }
+        public string TYP_DETAIL { get; set; }
+        public string SE_ANNO_CAD_DATA { get; set; }
+
+        public PlaygroundPointClass From(PlaygroundPoint point)
+        {
+            this.FID = point.FID;
+            this.OBJECTID = point.OBJECTID;
+            this.SHAPE = point.SHAPE;
+            this.ANL_NAME = point.ANL_NAME;
+            this.BEZIRK = point.BEZIRK;
+            this.SPIELPLATZ_DETAIL = point.SPIELPLATZ_DETAIL;
+            this.TYP_DETAIL = point.TYP_DETAIL;
+            this.SE_ANNO_CAD_DATA = point.SE_ANNO_CAD_DATA;
+            return this;
+        }
+    }
 
     public static class Program
     {
@@ -62,15 +93,105 @@ namespace SimpleDataStoreProjectInCSharp
             using Stream writeStream = File.OpenWrite("custom.csv");
             WriteCollectionAsCsv(data, writeStream);
 
-            // LINQ
+            // LINQ calculation of min/max
             var objectIds = data.Select(x => x.OBJECTID).Where(x => x.HasValue).Select(x => x.Value).ToList();
             Console.WriteLine("min objectid: " + objectIds.Min());
             Console.WriteLine("max objectid: " + objectIds.Max());
 
-            // File handling: preparation for databases (index file)
+            // File handling: preparation for database-concept (index file)
             using Stream writeStreamBinary = File.OpenWrite("custom.dat");
             using Stream writeStreamIndexBinary = File.OpenWrite("custom.idx.dat");
             WriteCollectionAsBinary(data, writeStreamBinary, writeStreamIndexBinary);
+
+            // Serialize to xml
+            using Stream writeStreamXml = File.OpenWrite("custom.xml");
+            WriteCollectionAsXml(data, writeStreamXml);
+
+            // Serialize to json
+            using Stream writeStreamJson = File.OpenWrite("custom.json");
+            WriteCollectionAsJson(data, writeStreamJson);
+
+            // write to database
+            WriteCollectionToDB(data);
+        }
+
+        private static void WriteCollectionToDB(IList<PlaygroundPoint> data)
+        {
+            IDbConnection connection = new NpgsqlConnection("Host=localhost;Username=postgres;Password=postgres;Database=simpledatastore");
+            connection.Open();
+            {
+                IDbCommand command = connection.CreateCommand();
+                command.CommandText = "delete from playgroundpoints";
+                command.ExecuteNonQuery();
+            }
+            {
+                IDbCommand command = connection.CreateCommand();
+                command.CommandText = @"
+insert into playgroundpoints 
+    (fid, objectid, shape, anlname, 
+     bezirk, spielplatzdetail, typdetail, seannocaddata) 
+values
+    (@fid, @objectid, @shape, @anlname, 
+     @bezirk, @spielplatzdetail, @typdetail, @seannocaddata)
+";
+                
+                var pFID = command.CreateParameter();
+                pFID.DbType = DbType.String;
+                pFID.ParameterName = "fid";
+                pFID.Size = 50;
+                command.Parameters.Add(pFID);
+
+                NpgsqlCommand c = command as NpgsqlCommand;
+                var pOBJECTID = c.CreateParameter();
+                pOBJECTID.DbType = DbType.Int32;
+                pOBJECTID.ParameterName = "objectid";
+                c.Parameters.Add(pOBJECTID);
+
+                c.Parameters.Add("shape", NpgsqlDbType.Varchar, 50);
+                c.Parameters.Add("anlname", NpgsqlDbType.Varchar, 50);
+
+                c.Parameters.Add("bezirk", NpgsqlDbType.Integer);
+                c.Parameters.Add("spielplatzdetail", NpgsqlDbType.Varchar, 50);
+                c.Parameters.Add("typdetail", NpgsqlDbType.Varchar, 50);
+                c.Parameters.Add("seannocaddata", NpgsqlDbType.Varchar, 50);
+
+                c.Prepare();
+
+                foreach (PlaygroundPoint item in data)
+                {
+                    //command.Parameters["fid"].Value = item.FID;
+                    c.Parameters["fid"].Value = item.FID;
+                    c.Parameters["objectid"].Value = item.OBJECTID;
+                    c.Parameters["shape"].Value = item.SHAPE;
+                    c.Parameters["anlname"].Value = item.ANL_NAME;
+
+                    c.Parameters["bezirk"].Value = item.BEZIRK ?? 0;
+                    c.Parameters["spielplatzdetail"].Value = item.SPIELPLATZ_DETAIL;
+                    c.Parameters["typdetail"].Value = item.TYP_DETAIL;
+                    c.Parameters["seannocaddata"].Value = item.SE_ANNO_CAD_DATA;
+                    
+                    command.ExecuteNonQuery();
+                }
+            }
+
+        }
+
+        private static void WriteCollectionAsJson(IList<PlaygroundPoint> data, Stream stream)
+        {
+            using StreamWriter writer = new StreamWriter(stream);
+            writer.Write(JsonConvert.SerializeObject(data));
+        }
+
+        private static void WriteCollectionAsXml(IList<PlaygroundPoint> data, Stream stream)
+        {
+            // does not work, because of missing parameterless constructor
+            //XmlSerializer xmlSerializer = new XmlSerializer(typeof(PlaygroundPoint));
+            //xmlSerializer.Serialize(writeStreamXml, data);
+
+            XmlSerializer xmlSerializer = new XmlSerializer(typeof(List<PlaygroundPointClass>));
+            xmlSerializer.Serialize(
+                stream,
+                data.Select(x => new PlaygroundPointClass().From(x)).ToList());
         }
 
         /// <summary>

@@ -7,6 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="Npgsql" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="SPIELPLATZPUNKTOGD.csv">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
