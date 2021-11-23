@@ -180,6 +180,7 @@ values
 
         }
 
+        // https://www.sqlines.com/postgresql/npgsql_cs_result_sets 
         private static void ReadDataFromDB(int searchedObjectId)
         {
             IDbConnection connection = new NpgsqlConnection("Host=localhost;Username=postgres;Password=postgres;Database=simpledatastore");

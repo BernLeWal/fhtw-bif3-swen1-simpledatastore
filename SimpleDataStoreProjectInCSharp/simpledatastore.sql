@@ -1,6 +1,6 @@
 ﻿CREATE DATABASE simpledatastore;
 --USE simpledatastore;
---for postgresql: \q simpledatastore
+--for postgresql: \c simpledatastore
 
 CREATE TABLE 
     IF NOT EXISTS 
