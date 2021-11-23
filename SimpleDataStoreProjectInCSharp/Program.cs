@@ -190,8 +190,14 @@ values
 SELECT fid, objectid, shape, anlname, 
      bezirk, spielplatzdetail, typdetail, seannocaddata
 FROM playgroundpoints 
+WHERE objectid = @objectid
 ";
-                NpgsqlCommand c = command as NpgsqlCommand;
+                var pOBJECTID = command.CreateParameter();
+                pOBJECTID.DbType = DbType.Int32;
+                pOBJECTID.ParameterName = "objectid";
+                pOBJECTID.Value = searchedObjectId;
+                command.Parameters.Add(pOBJECTID);
+
                 var reader = command.ExecuteReader();
                 while (reader.Read())
                 {
