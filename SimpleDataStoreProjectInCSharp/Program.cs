@@ -67,7 +67,11 @@ namespace SimpleDataStoreProjectInCSharp
                 Load();
             }
 
-            ReadBinaryData();
+            Console.Write("Enter an object id: ");
+            var searchedObjectId = int.Parse(Console.ReadLine() ?? "0");
+
+            ReadBinaryData(searchedObjectId);
+            ReadDataFromDB(searchedObjectId);
         }
 
         /// <summary>
@@ -174,6 +178,37 @@ values
                 }
             }
 
+        }
+
+        private static void ReadDataFromDB(int searchedObjectId)
+        {
+            IDbConnection connection = new NpgsqlConnection("Host=localhost;Username=postgres;Password=postgres;Database=simpledatastore");
+            connection.Open();
+            {
+                IDbCommand command = connection.CreateCommand();
+                command.CommandText = @"
+SELECT fid, objectid, shape, anlname, 
+     bezirk, spielplatzdetail, typdetail, seannocaddata
+FROM playgroundpoints 
+";
+                NpgsqlCommand c = command as NpgsqlCommand;
+                var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    PlaygroundPoint pgp = new PlaygroundPoint(
+                        reader.GetString(0),
+                        reader.GetInt32(1),
+                        reader.GetString(2),
+                        reader.GetString(3),
+                        reader.GetInt32(4),
+                        reader.GetString(5),
+                        reader.GetString(6),
+                        reader.GetString(7)
+                        );
+                    Console.WriteLine(pgp);
+                }
+                reader.Close();
+            }
         }
 
         private static void WriteCollectionAsJson(IList<PlaygroundPoint> data, Stream stream)
@@ -402,11 +437,8 @@ values
         /// Read binary data based on index file.
         /// </summary>
         /// <returns></returns>
-        private static void ReadBinaryData()
+        private static void ReadBinaryData(int searchedObjectId)
         {
-            Console.Write("Enter an object id: ");
-            var searchedObjectId = int.Parse(Console.ReadLine() ?? "0");
-
             using Stream readStreamBinary = File.OpenRead("custom.dat");
             using Stream readStreamIndexBinary = File.OpenRead("custom.idx.dat");
 
