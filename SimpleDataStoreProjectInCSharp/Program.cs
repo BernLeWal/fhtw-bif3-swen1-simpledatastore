@@ -121,7 +121,7 @@ namespace SimpleDataStoreProjectInCSharp
 
         private static void WriteCollectionToDB(IList<PlaygroundPoint> data)
         {
-            IDbConnection connection = new NpgsqlConnection("Host=localhost;Username=postgres;Password=postgres;Database=simpledatastore");
+            IDbConnection connection = new NpgsqlConnection("Host=localhost;Username=swe1user;Password=swe1pw;Database=simpledatastore");
             connection.Open();
             {
                 IDbCommand command = connection.CreateCommand();
@@ -168,6 +168,11 @@ values
                     c.Parameters["objectid"].Value = item.OBJECTID;
                     c.Parameters["shape"].Value = item.SHAPE;
                     c.Parameters["anlname"].Value = item.ANL_NAME;
+                    // when only executed once,
+                    // then the parameter setup and filling can be done within one line:
+                    //
+                    // c.Parameters.AddWithValue("anlname", data[0].ANL_NAME);
+
 
                     c.Parameters["bezirk"].Value = item.BEZIRK ?? 0;
                     c.Parameters["spielplatzdetail"].Value = item.SPIELPLATZ_DETAIL;
@@ -183,7 +188,7 @@ values
         // https://www.sqlines.com/postgresql/npgsql_cs_result_sets 
         private static void ReadDataFromDB(int searchedObjectId)
         {
-            IDbConnection connection = new NpgsqlConnection("Host=localhost;Username=postgres;Password=postgres;Database=simpledatastore");
+            IDbConnection connection = new NpgsqlConnection("Host=localhost;Username=swe1user;Password=swe1pw;Database=simpledatastore");
             connection.Open();
             {
                 IDbCommand command = connection.CreateCommand();

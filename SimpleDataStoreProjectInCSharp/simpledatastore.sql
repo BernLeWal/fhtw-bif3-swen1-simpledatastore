@@ -13,3 +13,6 @@ playgroundpoints (
     spielplatzdetail VARCHAR(200) NOT NULL, 
     typdetail VARCHAR(200) NOT NULL, 
     seannocaddata VARCHAR(200) NOT NULL);
+
+--GRANT access to the table
+GRANT ALL ON playgroundpoints TO swe1user;
